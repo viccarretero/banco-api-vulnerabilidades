@@ -1,0 +1,113 @@
+name: Escaneo de vulnerabilidades (DevSkim + Grype)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Compilar aplicación .NET
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compilar
+        run: dotnet build src/BancoApi/BancoApi.csproj -c Release
+
+  # ---------------- SAST: análisis del código fuente (Victor) ----------------
+  devskim:
+    name: Escaneo de código con DevSkim
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ejecutar DevSkim
+        uses: microsoft/DevSkim-Action@v1
+        with:
+          directory-to-scan: src
+          output-filename: devskim-results.sarif
+      - name: Publicar hallazgos en GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: devskim-results.sarif
+          category: devskim
+      - name: Generar reporte HTML
+        run: |
+          mkdir -p site/devskim
+          python3 scripts/sarif_to_html.py devskim-results.sarif site/devskim/index.html DevSkim
+          cp devskim-results.sarif site/devskim/resultados.sarif
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reporte-devskim
+          path: site
+
+  # ------------- SCA: dependencias e imagen Docker (Gerald) -------------
+  grype:
+    name: Escaneo de dependencias e imagen con Grype
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir imagen Docker
+        run: docker build -t banco-api:${{ github.sha }} .
+      - name: Ejecutar Grype
+        id: scan
+        uses: anchore/scan-action@v6
+        with:
+          image: banco-api:${{ github.sha }}
+          fail-build: false
+          output-format: sarif
+      - name: Publicar hallazgos en GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+          category: grype
+      - name: Generar reporte HTML
+        run: |
+          mkdir -p site/grype
+          python3 scripts/sarif_to_html.py "${{ steps.scan.outputs.sarif }}" site/grype/index.html Grype
+          cp "${{ steps.scan.outputs.sarif }}" site/grype/resultados.sarif
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reporte-grype
+          path: site
+
+  # ---------------- Publicación en la nube (GitHub Pages) ----------------
+  publicar:
+    name: Publicar reportes en GitHub Pages
+    runs-on: ubuntu-latest
+    needs: [ devskim, grype ]
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: site
+          merge-multiple: true
+      - name: Página de inicio
+        run: cp docs/index.html site/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Desplegar
+        id: deployment
+        uses: actions/deploy-pages@v4
