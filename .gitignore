@@ -1,0 +1,5 @@
+bin/
+obj/
+*.sarif
+site/
+.vs/
