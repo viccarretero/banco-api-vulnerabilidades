@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banco API - Reportes de seguridad</title>
+<style>
+body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:0;background:#f5f7fa;color:#1f2933}
+header{background:#0b3d91;color:#fff;padding:28px 16px}
+header h1{margin:0;font-size:1.6rem} header p{margin:6px 0 0;opacity:.85}
+main{max-width:900px;margin:0 auto;padding:20px 16px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+a.card{display:block;background:#fff;border-radius:10px;padding:20px;text-decoration:none;color:inherit;box-shadow:0 1px 4px #0002;border-top:5px solid #0b3d91}
+a.card:hover{box-shadow:0 3px 10px #0003}
+a.card h2{margin:0 0 6px;font-size:1.2rem} a.card small{color:#52606d}
+footer{text-align:center;color:#52606d;font-size:.85rem;padding:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Banco API — Escaneo de vulnerabilidades</h1>
+  <p>Reportes generados automáticamente por GitHub Actions en cada cambio a <code>main</code></p>
+</header>
+<main>
+  <a class="card" href="devskim/">
+    <h2>DevSkim (SAST)</h2>
+    <p>Análisis estático del código fuente C#: criptografía débil, credenciales, URLs inseguras.</p>
+    <small>Victor Carretero</small>
+  </a>
+  <a class="card" href="grype/">
+    <h2>Grype (SCA)</h2>
+    <p>Vulnerabilidades conocidas (CVE) en paquetes NuGet y en la imagen Docker de la aplicación.</p>
+    <small>Gerald Deybi Zevallos Pinto</small>
+  </a>
+</main>
+<footer>Calidad y Pruebas de Software — Universidad Privada de Tacna</footer>
+</body>
+</html>
